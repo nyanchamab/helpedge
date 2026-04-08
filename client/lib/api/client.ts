@@ -124,16 +124,9 @@ export async function apiRequest<T = unknown>(
         errorMessage = data;
       }
 
-      // Add status code context
-      if (response.status === 500) {
-        errorMessage += ' (Internal Server Error - Check backend logs)';
-      } else if (response.status === 401) {
-        errorMessage += ' (Unauthorized - Check authentication)';
-      } else if (response.status === 403) {
-        errorMessage += ' (Forbidden - Insufficient permissions)';
-      } else if (response.status === 404) {
-        errorMessage += ' (Not Found)';
-      }
+      // Log status context for debugging (not shown to users)
+      console.warn(`API error status: ${response.status} (${response.statusText})`);
+
 
       return {
         success: false,

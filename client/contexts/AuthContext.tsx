@@ -119,6 +119,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
+   * Maps raw API error status codes to user-friendly messages.
+   * Keeps technical details out of the UI.
+   */
+  function getFriendlyLoginError(status: number): string {
+    if (status === 0) {
+      return 'Unable to connect to the server. Please check your internet connection and try again.';
+    }
+    if (status === 500 || status === 502 || status === 503 || status === 504) {
+      return 'Something went wrong on our end. Please try again in a moment.';
+    }
+    if (status === 401 || status === 400) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+    if (status === 403) {
+      return 'Your account does not have access. Please contact your administrator.';
+    }
+    if (status === 429) {
+      return 'Too many login attempts. Please wait a moment before trying again.';
+    }
+    return 'Unable to sign in. Please try again or contact support if the problem persists.';
+  }
+
+  /**
    * Login user
    * Backend sets auth cookie via Set-Cookie header automatically
    * Returns the appropriate dashboard route for the user's role
@@ -161,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           return {
             success: false,
-            error: 'Failed to extract user information from token.',
+            error: 'Sign-in succeeded but we could not load your profile. Please try again.',
           };
         }
       } else {
@@ -169,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return {
           success: false,
-          error: response.error || 'Login failed. Please check your credentials.',
+          error: getFriendlyLoginError(response.status),
         };
       }
     } catch (error) {
