@@ -284,7 +284,7 @@ export default function ReviewQueuePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-5">
+    <div className="container space-y-6">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
