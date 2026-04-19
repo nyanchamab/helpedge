@@ -85,18 +85,20 @@ export default function PortalCreateTicket() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-6 space-y-4">
+    <div className="py-6 space-y-4">
       <Button
         variant="ghost"
         size="sm"
         onClick={() => navigateTo(pageParams?.from ?? '/portal/my-tickets')}
-        className="-ml-2"
+        className="justify-start"
       >
         <ArrowLeft className="h-4 w-4 mr-1.5" />
         Back to My Tickets
       </Button>
 
-      <UserTicketForm categories={categories} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      <div className="container max-w-2xl mx-auto mt-4">
+        <UserTicketForm categories={categories} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      </div>
     </div>
   );
 }
