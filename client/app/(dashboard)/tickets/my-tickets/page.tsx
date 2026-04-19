@@ -69,7 +69,7 @@ export default function MyTicketsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">My Tickets</h1>

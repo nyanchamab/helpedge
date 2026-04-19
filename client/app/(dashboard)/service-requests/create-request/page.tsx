@@ -263,24 +263,24 @@ export default function CreateRequestPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigateTo(pageParams?.from ?? '/service-requests/my-requests')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
+    <div className="py-6 space-y-4">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigateTo(pageParams?.from ?? '/service-requests/my-requests')}
+        className="justify-start"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back to My Requests
+      </Button>
+
+      <div className="container max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold">Raise Service Request</h1>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Subject */}
         <div className="space-y-1.5">
           <Label htmlFor="subject">
@@ -524,9 +524,10 @@ export default function CreateRequestPage() {
           </Button>
         </div>
       </form>
-
-      {/* Enum reference — collapsed by default */}
-      <EnumReference />
     </div>
-  );
-}
+
+    {/* Enum reference — collapsed by default */}
+    <EnumReference />
+  </div>
+    );
+  }

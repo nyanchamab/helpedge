@@ -138,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (status === 429) {
       return 'Too many login attempts. Please wait a moment before trying again.';
     }
+
     return 'Unable to sign in. Please try again or contact support if the problem persists.';
   }
 

@@ -150,7 +150,7 @@ export default function ManagerDashboard() {
   const totalUnacked = resolverKpis.reduce((sum, r) => sum + r.unacknowledgedCount, 0);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>

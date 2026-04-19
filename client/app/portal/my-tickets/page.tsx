@@ -172,7 +172,7 @@ export default function PortalMyTickets() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container space-y-6">
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
