@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/tickets';
 import { TicketsTable } from '@/components/tickets/TicketsTable';
 import { TicketAnalyticsCards } from '@/components/manager/TicketAnalyticsCards';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -177,7 +178,7 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -253,6 +254,6 @@ export default function TicketsPage() {
         onDelete={canDelete ? handleDelete : undefined}
         onBulkDelete={canDelete ? handleBulkDelete : undefined}
       />
-    </div>
+    </PageContainer>
   );
 }
