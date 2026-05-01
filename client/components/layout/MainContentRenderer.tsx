@@ -285,6 +285,10 @@ const ApprovalWorkflowEditContent = dynamic(
   },
 );
 
+const SubmitTicketContent = dynamic(() => import('@/app/(dashboard)/tickets/submit/page'), {
+  loading: () => <PageSkeleton />,
+});
+
 function PageSkeleton() {
   return (
     <div className="space-y-4">
@@ -363,6 +367,7 @@ export function MainContentRenderer() {
     if (activePage === '/tickets/assigned') {return <AssignedTicketsContent />;}
     if (activePage === '/tickets/my-tickets') {return <MyTicketsContent />;}
     if (activePage === '/tickets/create-ticket') {return <PortalCreateTicketContent />;}
+    if (activePage === '/tickets/submit') {return <SubmitTicketContent />;}
     if (activePage === '/tickets/from-email') {return <EmailTicketPage />;}
     if (activePage === '/tickets/review-queue') {return <ReviewQueueContent />;}
 
