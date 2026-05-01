@@ -72,7 +72,7 @@ function formatDate(dateString: string | undefined): string {
 }
 
 export default function CronSettingsPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [settings, setSettings] = useState<CronSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +87,12 @@ export default function CronSettingsPage() {
   const hasPermission = user?.role === 'Admin' || user?.role === 'ITManager';
 
   useEffect(() => {
+    // Wait for auth to finish initialising before checking permissions.
+    // Without this, hasPermission is false while user is null, which
+    // immediately shows a "no permission" error that flickers away once
+    // the real user loads.
+    if (authLoading) return;
+
     async function run() {
       if (hasPermission) {
         setLoading(true);
@@ -104,14 +110,13 @@ export default function CronSettingsPage() {
 
         setLoading(false);
       } else {
-        await Promise.resolve();
         setLoading(false);
         setError('You do not have permission to view this page');
       }
     }
 
     void run();
-  }, [hasPermission]);
+  }, [hasPermission, authLoading]);
 
   // Track changes
   useEffect(() => {
