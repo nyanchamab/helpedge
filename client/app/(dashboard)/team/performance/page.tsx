@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@/contexts/NavigationContext';
 import {
   getResolverKpis,
@@ -34,6 +34,7 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 const PAGE_SIZE = 15;
 
@@ -178,6 +179,11 @@ export default function TeamPerformancePage() {
     ? resolverKpis.reduce((s, r) => s + (r.avgTtrMinutes ?? 0), 0) / resolverKpis.length
     : null;
 
+  useEffect(() => {
+    void fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function toggleSort(col: keyof ResolverKpis) {
     if (sortCol === col) {setSortAsc((v) => !v);}
     else {
@@ -188,7 +194,7 @@ export default function TeamPerformancePage() {
   }
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -523,6 +529,6 @@ export default function TeamPerformancePage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
