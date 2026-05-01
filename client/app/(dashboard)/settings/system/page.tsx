@@ -1,38 +1,24 @@
 'use client';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const [status, setStatus] = useState('loading'); // "loading" | "success" | "error" state
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    async function redirect() {
-      try {
-        await router.push('/settings/profile');
-        setStatus('success');
-      } catch (err) {
-        console.error('Redirect failed:', err);
-        setStatus('error');
-      }
-    }
+import { PlaceholderPage } from '@/components/shared/PlaceholderPage';
 
-    void redirect();
-  }, [router]);
-
+export default function SystemSettingsPage() {
   return (
-    <div className="flex items-center justify-center h-screen">
-      {status === 'loading' && (
-        <p className="text-gray-500 text-lg">Redirecting to Profile Settings...</p>
-      )}
-      {status === 'success' && (
-        <p className="text-green-600 text-lg">
-          Redirect successful! Taking you to Profile Settings...
-        </p>
-      )}
-      {status === 'error' && (
-        <p className="text-red-600 text-lg">Redirect failed. Please try again.</p>
-      )}
-    </div>
+    <PlaceholderPage
+      title="System Settings"
+      description="Configure system-wide settings and platform behaviour"
+      features={[
+        'Email server configuration (SMTP/IMAP)',
+        'System-wide notification preferences',
+        'Authentication & SSO settings',
+        'API rate limits and throttling',
+        'Audit log retention policies',
+        'Maintenance mode controls',
+        'Data backup and export settings',
+        'Integration webhook management',
+      ]}
+    />
   );
 }
