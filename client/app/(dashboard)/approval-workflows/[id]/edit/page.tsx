@@ -12,19 +12,17 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { CreateApprovalWorkflowDto } from '@/lib/api/approval-workflow';
-import { useRouter } from 'next/navigation';
 
 export default function EditApprovalWorkflowPage() {
-  const { activePage, pageParams } = useNavigation();
+  const { activePage, pageParams, navigateTo } = useNavigation();
   const id = pageParams?.id ?? activePage.split('/').filter(Boolean).at(-2) ?? '';
-  const router = useRouter();
   const { data: workflow, isLoading } = useApprovalWorkflow(id);
   const updateMutation = useUpdateApprovalWorkflow(id);
   const handleSubmit = async (data: CreateApprovalWorkflowDto) => {
     const result = await updateMutation.mutateAsync(data);
 
     if (result.success) {
-      router.push(`/approval-workflows/${id}`);
+      navigateTo(`/approval-workflows/${id}`);
     }
   };
 
@@ -39,7 +37,7 @@ export default function EditApprovalWorkflowPage() {
     return (
       <div className="container mx-auto py-8 text-center">
         <h2 className="text-2xl font-bold">Workflow not found</h2>
-        <Button className="mt-4" onClick={() => router.push('/approval-workflows')}>
+        <Button className="mt-4" onClick={() => navigateTo('/approval-workflows')}>
           Back to Workflows
         </Button>
       </div>
@@ -52,7 +50,7 @@ export default function EditApprovalWorkflowPage() {
         <Button
           variant="ghost"
           className="gap-2"
-          onClick={() => router.push(`/approval-workflows/${id}`)}
+          onClick={() => navigateTo(`/approval-workflows/${id}`)}
         >
           <ArrowLeft className="h-4 w-4" /> Back to Workflow
         </Button>
@@ -66,7 +64,7 @@ export default function EditApprovalWorkflowPage() {
           <WorkflowForm
             initialData={workflow}
             onSubmit={handleSubmit}
-            onCancel={() => router.push(`/approval-workflows/${id}`)}
+            onCancel={() => navigateTo(`/approval-workflows/${id}`)}
             isLoading={updateMutation.isPending}
             isEditing
           />
