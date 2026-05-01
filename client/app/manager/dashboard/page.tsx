@@ -22,6 +22,7 @@ import { getReviewQueueStats } from '@/lib/api/ai';
 import { getActiveCategories, type Category } from '@/lib/api/categories';
 import type { ReviewQueueStats } from '@/lib/types/ai';
 import { TicketsTable } from '@/components/tickets/TicketsTable';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -150,7 +151,7 @@ export default function ManagerDashboard() {
   const totalUnacked = resolverKpis.reduce((sum, r) => sum + r.unacknowledgedCount, 0);
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -552,6 +553,6 @@ export default function ManagerDashboard() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }
