@@ -29,6 +29,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 function getInitials(u: User) {
   return ((u.firstName?.[0] ?? '') + (u.lastName?.[0] ?? '')).toUpperCase() || 'U';
@@ -132,7 +133,7 @@ export default function TeamSettingsPage() {
   ).sort();
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2.5">
@@ -449,7 +450,7 @@ export default function TeamSettingsPage() {
           })}
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }
 
