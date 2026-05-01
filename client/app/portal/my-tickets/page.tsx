@@ -30,6 +30,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 9;
@@ -172,7 +173,7 @@ export default function PortalMyTickets() {
   }
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -402,7 +403,7 @@ export default function PortalMyTickets() {
           {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
