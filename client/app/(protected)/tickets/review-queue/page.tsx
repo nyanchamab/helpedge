@@ -37,28 +37,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getReviewQueue, getReviewQueueStats, approveTicketClassification } from '@/lib/api/ai';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { getAllCategories } from '@/lib/api/categories';
 import { getAssignableStaff } from '@/lib/api/users';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-
-function confidenceBorderClass(confidence?: number) {
-  if (confidence === null || confidence === undefined) {return 'border-l-muted';}
-  if (confidence < 0.4) {return 'border-l-red-500';}
-  if (confidence < 0.6) {return 'border-l-orange-400';}
-
-  return 'border-l-yellow-400';
-}
-
-function confidenceBarClass(confidence?: number) {
-  if (confidence === null || confidence === undefined) {return 'bg-muted';}
-  if (confidence < 0.4) {return 'bg-red-500';}
-  if (confidence < 0.6) {return 'bg-orange-400';}
-
-  return 'bg-yellow-400';
-}
 
 function priorityBadgeClass(priority?: string) {
   switch (priority?.toLowerCase()) {
@@ -269,7 +254,7 @@ export default function ReviewQueuePage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer>
         <Card>
           <CardContent className="flex flex-col items-center justify-center p-12 gap-4">
             <AlertCircle className="h-10 w-10 text-destructive" />
@@ -279,12 +264,12 @@ export default function ReviewQueuePage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -530,7 +515,7 @@ export default function ReviewQueuePage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -603,12 +588,7 @@ function TicketReviewCard({
       : 'recently';
 
   return (
-    <div
-      className={cn(
-        'rounded-xl border border-l-4 bg-card hover:shadow-sm transition-shadow',
-        confidenceBorderClass(conf),
-      )}
-    >
+    <div className="rounded-xl border bg-card hover:shadow-sm transition-shadow">
       <div className="p-4 space-y-3">
         {/* Top row */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -652,7 +632,7 @@ function TicketReviewCard({
 
         {/* Review reason */}
         {ticket.reviewReason && (
-          <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 border-l-2 border-amber-300 line-clamp-2">
+          <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 line-clamp-2">
             {ticket.reviewReason}
           </p>
         )}
@@ -667,22 +647,16 @@ function TicketReviewCard({
               icon={<Tag className="h-3.5 w-3.5" />}
               label="Category"
               value={resolveCat(ticket.aiCategory)}
-              confidence={ticket.aiCategoryConfidence}
-              confClass={confidenceBarClass(ticket.aiCategoryConfidence)}
             />
             <AISuggestionCell
               icon={<Zap className="h-3.5 w-3.5" />}
               label="Priority"
               value={ticket.aiPriority || '—'}
-              confidence={ticket.aiPriorityConfidence}
-              confClass={confidenceBarClass(ticket.aiPriorityConfidence)}
             />
             <AISuggestionCell
               icon={<User2 className="h-3.5 w-3.5" />}
               label="Assignee"
               value={resolveUser(ticket.aiAssignee)}
-              confidence={ticket.aiAssigneeConfidence}
-              confClass={confidenceBarClass(ticket.aiAssigneeConfidence)}
             />
           </div>
         </div>
@@ -720,17 +694,11 @@ function AISuggestionCell({
   icon,
   label,
   value,
-  confidence,
-  confClass,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  confidence?: number;
-  confClass: string;
 }) {
-  const pct = confidence !== null && confidence !== undefined ? Math.round(confidence * 100) : null;
-
   return (
     <div className="space-y-1">
       <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -739,17 +707,6 @@ function AISuggestionCell({
       <p className="text-sm font-medium leading-snug line-clamp-1" title={value}>
         {value}
       </p>
-      {pct !== null && pct !== undefined && (
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-            <div
-              className={cn('h-full rounded-full transition-all', confClass)}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
-        </div>
-      )}
     </div>
   );
 }
