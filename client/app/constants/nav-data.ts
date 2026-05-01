@@ -95,14 +95,8 @@ export const navData = {
           roles: ['Technician', 'SystemAdmin', 'SecurityAdmin', 'TeamLead', 'ServiceDeskAgent'],
         },
         { title: 'My Tickets', url: '/portal/my-tickets', roles: ALL_ROLES },
-        { title: 'Submit Ticket', url: '/portal/create-ticket', roles: ['EndUser'] },
+        { title: 'Submit Ticket', url: '/tickets/submit', roles: ALL_ROLES },
         { title: 'Email Instructions', url: '/portal/email-ticket', roles: ['EndUser'] },
-        { title: 'Quick Submit', url: '/portal/create-ticket', roles: STAFF_ROLES },
-        {
-          title: 'Proxy Submission',
-          url: '/tickets/from-email',
-          roles: ['Admin', 'ITManager', 'TeamLead', 'ServiceDeskAgent'],
-        },
       ],
     },
     {
