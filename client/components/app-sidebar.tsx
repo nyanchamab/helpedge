@@ -38,13 +38,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             onClick={handleNavItemClick}
             className="flex items-center gap-2 min-w-0"
           >
-            <div className="size-8 rounded-lg overflow-hidden flex-shrink-0 group-data-[state=collapsed]:hidden">
+            <div className="relative size-8 rounded-lg overflow-hidden flex-shrink-0 group-data-[state=collapsed]:hidden">
               <Image
                 src={siteConfig.logo}
                 alt="HelpEdge Logo"
-                width={32}
-                height={32}
-                className="h-full w-full object-contain"
+                fill
+                sizes="32px"
+                className="object-contain"
               />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight group-data-[state=collapsed]:hidden">
