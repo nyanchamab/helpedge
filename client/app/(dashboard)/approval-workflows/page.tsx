@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { ApprovalStep, ApprovalWorkflow } from '@/lib/api/approval-workflow';
 import { Spinner } from '@/components/ui/spinner';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { cn } from '@/lib/utils';
 
 // ─── Approver type metadata ──────────────────────────────────────────────────
@@ -104,14 +105,14 @@ export default function ApprovalWorkflowsPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 flex items-center justify-center">
+      <PageContainer className="flex items-center justify-center">
         <Spinner size="md" />
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="container space-y-6">
+    <PageContainer>
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -223,7 +224,7 @@ export default function ApprovalWorkflowsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
