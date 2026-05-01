@@ -91,7 +91,7 @@ export default function CronSettingsPage() {
     // Without this, hasPermission is false while user is null, which
     // immediately shows a "no permission" error that flickers away once
     // the real user loads.
-    if (authLoading) return;
+    if (authLoading) {return;}
 
     async function run() {
       if (hasPermission) {

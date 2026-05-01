@@ -181,7 +181,6 @@ export default function TeamPerformancePage() {
 
   useEffect(() => {
     void fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleSort(col: keyof ResolverKpis) {
