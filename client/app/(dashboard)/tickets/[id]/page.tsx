@@ -486,10 +486,9 @@ export default function TicketDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId]);
 
-  // Fetch categories and users on component mount for AI suggestions display
+  // Fetch categories and users on component mount for AI suggestions display — run in parallel
   useEffect(() => {
-    async function run() { await fetchCategories(); await fetchUsers(); }
-    void run();
+    void Promise.all([fetchCategories(), fetchUsers()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
