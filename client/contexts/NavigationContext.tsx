@@ -86,8 +86,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const navigateTo = useCallback((page: string, params?: Record<string, string>) => {
     setActivePage(page);
 
-    // If params not provided, try to extract from path (for dynamic routes like /tickets/123)
-    const extractedParams = params || extractParamsFromPath(page);
+    // Always extract path params (e.g. id from /tickets/123), then merge with any explicit params.
+    // Explicit params take precedence but never suppress path extraction — prevents { from: '...' }
+    // overwriting the auto-extracted { id: '...' } and leaving ticketId undefined.
+    const extractedParams = { ...extractParamsFromPath(page), ...(params || {}) };
 
     setPageParams(extractedParams);
 
