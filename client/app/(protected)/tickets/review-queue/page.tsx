@@ -176,7 +176,10 @@ export default function ReviewQueuePage() {
   });
 
   // ── raw list ──
-  const tickets: ReviewQueueTicket[] = Array.isArray(queueData?.data) ? queueData.data : [];
+  const tickets = useMemo<ReviewQueueTicket[]>(
+    () => (Array.isArray(queueData?.data) ? queueData.data : []),
+    [queueData],
+  );
 
   const stats: ReviewQueueStats | undefined = statsData?.data;
 
