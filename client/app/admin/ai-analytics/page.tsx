@@ -134,9 +134,9 @@ export default function AIAnalyticsDashboard() {
   const metrics = metricsResponse?.data;
   const categoryPerformance = (Array.isArray(categoryResponse?.data) ? categoryResponse.data : [])
     .map((item) => {
-      const resolved = resolveCategory(item.category ?? '');
+      const resolved = resolveCategory(item.categoryName ?? '');
 
-      if (!resolved) {return null;} // drop orphaned category entries
+      if (!resolved) {return null;}
 
       return {
         ...item,

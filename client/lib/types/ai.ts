@@ -95,11 +95,14 @@ export interface MethodPerformance {
 }
 
 export interface CategoryPerformance {
-  category: string;
+  categoryName: string;
   totalPredictions: number;
   correctPredictions: number;
+  incorrectPredictions?: number;
   accuracy: number;
   averageConfidence: number;
+  overrides?: number;
+  approvals?: number;
   confusionMatrix?: Record<string, number>;
 }
 
