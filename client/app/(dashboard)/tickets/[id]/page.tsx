@@ -2014,9 +2014,9 @@ export default function TicketDetailPage() {
             fetchedAIDetails ?? {
               ticketId,
               method: 'Hybrid' as TicketAIDetails['method'],
-              finalCategory: ticket.aiSuggestedCategoryId ?? ticket.categoryId,
+              finalCategory: ticket.aiSuggestedCategoryId ?? ticket.categoryId ?? undefined,
               finalPriority: ticket.aiSuggestedPriority ?? ticket.priority,
-              finalAssignee: ticket.aiSuggestedAssigneeId ?? ticket.assignedToId,
+              finalAssignee: (ticket.aiSuggestedAssigneeId ?? ticket.assignedToId) ?? undefined,
               finalConfidence: ticket.aiConfidenceScore ?? undefined,
               needsReview: ticket.triageStatus === 'Pending',
             }
