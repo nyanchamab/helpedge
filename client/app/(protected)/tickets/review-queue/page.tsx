@@ -176,9 +176,7 @@ export default function ReviewQueuePage() {
   });
 
   // ── raw list ──
-  const tickets: ReviewQueueTicket[] = (
-    Array.isArray(queueData?.data) ? queueData.data : []
-  ).filter((t: ReviewQueueTicket) => t.ticketSummary !== null && t.ticketSummary !== undefined);
+  const tickets: ReviewQueueTicket[] = Array.isArray(queueData?.data) ? queueData.data : [];
 
   const stats: ReviewQueueStats | undefined = statsData?.data;
 
