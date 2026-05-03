@@ -108,9 +108,9 @@ export interface CategoryPerformance {
 
 export interface ConfusionMatrix {
   categories: string[];
-  matrix: number[][];
-  totalPredictions: number;
-  accuracy: number;
+  matrix: Record<string, Record<string, number>>;
+  totalClassifications: number;
+  accuracy?: number;
 }
 
 // ============================================

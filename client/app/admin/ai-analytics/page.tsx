@@ -146,12 +146,26 @@ export default function AIAnalyticsDashboard() {
     })
     .filter(Boolean);
   const rawConfusion = confusionResponse?.data;
-  const confusionMatrix = rawConfusion
-    ? {
-        ...rawConfusion,
-        categories: (rawConfusion.categories ?? []).map(resolveCategory).filter(Boolean),
-      }
-    : undefined;
+  const confusionMatrix = (() => {
+    if (!rawConfusion) { return undefined; }
+
+    const rawCats: string[] = rawConfusion.categories ?? [];
+    const pairs = rawCats
+      .map((id): [string, string | null] => [id, resolveCategory(id)])
+      .filter((p): p is [string, string] => p[1] !== null);
+    const ids = pairs.map(([id]) => id);
+    const displayNames = pairs.map(([, name]) => name);
+    const matrix: number[][] = ids.map((rowId) =>
+      ids.map((colId) => rawConfusion.matrix?.[rowId]?.[colId] ?? 0),
+    );
+
+    return {
+      categories: displayNames,
+      matrix,
+      totalPredictions: rawConfusion.totalClassifications ?? 0,
+      accuracy: rawConfusion.accuracy ?? 0,
+    };
+  })();
 
   const isRefreshing = isFetchingMetrics || isFetchingCategory || isFetchingConfusion;
 
