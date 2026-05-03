@@ -15,13 +15,27 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { TrendingUp } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { escalateTicket } from '@/lib/api/tickets';
-import { getAssignableStaff, User, getUserDisplayName } from '@/lib/api/users';
+import { getAssignableStaff, User, getUserDisplayName, UserRoleString } from '@/lib/api/users';
+
+const ESCALATABLE_ROLES: UserRoleString[] = [
+  'Admin',
+  'ITManager',
+  'TeamLead',
+  'Technician',
+  'SystemAdmin',
+  'ServiceDeskAgent',
+  'SecurityAdmin',
+];
+
+function getInitials(name: string): string {
+  return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+}
 
 interface EscalateDialogProps {
   isOpen: boolean;
@@ -43,15 +57,15 @@ export function EscalateDialog({ isOpen, onClose, ticketId, onSuccess }: Escalat
     const response = await getAssignableStaff();
 
     if (response.success && response.data) {
-      setUsers(response.data.filter((u) => u.isActive));
+      setUsers(
+        response.data.filter((u) => u.isActive && ESCALATABLE_ROLES.includes(u.role)),
+      );
     }
     setIsLoadingUsers(false);
   }
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) { return; }
 
     async function load() {
       await loadUsers();
@@ -67,7 +81,7 @@ export function EscalateDialog({ isOpen, onClose, ticketId, onSuccess }: Escalat
   }, [isOpen]);
 
   async function handleSubmit() {
-    if (!reason.trim()) {return;}
+    if (!reason.trim()) { return; }
 
     setIsSubmitting(true);
     setError(null);
@@ -87,9 +101,11 @@ export function EscalateDialog({ isOpen, onClose, ticketId, onSuccess }: Escalat
     setIsSubmitting(false);
   }
 
+  const selectedUser = users.find((u) => u.id === targetUserId);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-orange-500" />
@@ -123,24 +139,53 @@ export function EscalateDialog({ isOpen, onClose, ticketId, onSuccess }: Escalat
 
           <div className="space-y-2">
             <Label htmlFor="escalate-target">Assign to (optional)</Label>
-            <Select value={targetUserId} onValueChange={setTargetUserId}>
-              <SelectTrigger id="escalate-target" disabled={isLoadingUsers}>
-                <SelectValue
-                  placeholder={isLoadingUsers ? 'Loading users...' : 'Select a senior agent'}
-                />
+            <Select value={targetUserId} onValueChange={setTargetUserId} disabled={isLoadingUsers}>
+              <SelectTrigger id="escalate-target" className="w-full">
+                <span className="truncate text-sm">
+                  {isLoadingUsers ? (
+                    <span className="text-muted-foreground">Loading users...</span>
+                  ) : selectedUser ? (
+                    getUserDisplayName(selectedUser)
+                  ) : targetUserId === 'none' ? (
+                    'No specific assignee'
+                  ) : (
+                    <span className="text-muted-foreground">Select a staff member</span>
+                  )}
+                </span>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No specific assignee</SelectItem>
+              <SelectContent style={{ maxHeight: '420px' }}>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">No specific assignee</span>
+                </SelectItem>
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
-                    {getUserDisplayName(user)}
+                    <div className="flex items-center gap-3 py-1">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="text-xs bg-muted">
+                          {getInitials(getUserDisplayName(user))}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="font-medium leading-tight">
+                          {getUserDisplayName(user)}
+                        </span>
+                        {(user.jobTitle || user.department) && (
+                          <span className="text-xs text-foreground/75 leading-tight">
+                            {[user.jobTitle, user.department].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                        <span className="text-muted-foreground text-xs leading-tight">
+                          {user.role} · {user.email}
+                        </span>
+                      </div>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {targetUserId
-                ? 'The selected agent will be assigned to this escalated ticket.'
+              {targetUserId && targetUserId !== 'none'
+                ? 'The selected staff member will be assigned to this escalated ticket.'
                 : 'Without a target, the escalation will be routed to available senior agents.'}
             </p>
           </div>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -103,10 +104,11 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { AIDetailsSection } from '@/components/tickets/AIDetailsSection';
 import { OverrideModal } from '@/components/ai/OverrideModal';
+import { getTicketAIDetails } from '@/lib/api/ai';
 import { EscalateDialog } from '@/components/tickets/EscalateDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 import type { TicketAIDetails } from '@/lib/types/ai';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 function getInitials(name: string): string {
@@ -243,6 +245,37 @@ function getBackRoute(role?: string): string {
 // Roles allowed to assign tickets
 const ASSIGN_ROLES = ['Admin', 'ITManager', 'TeamLead', 'ServiceDeskAgent'];
 
+// Roles that can be assigned tickets (appear in the assignee dropdown)
+const ASSIGNABLE_ROLES: import('@/lib/api/users').UserRoleString[] = [
+  'TeamLead',
+  'SystemAdmin',
+  'ServiceDeskAgent',
+  'Technician',
+  'SecurityAdmin',
+];
+
+// Returns true if a role can work on tickets in a given category (keyword-based)
+function roleMatchesCategory(
+  role: import('@/lib/api/users').UserRoleString,
+  categoryName: string,
+): boolean {
+  const name = categoryName.toLowerCase();
+
+  switch (role) {
+    case 'TeamLead':
+    case 'Technician':
+      return true;
+    case 'SystemAdmin':
+      return /network|hardware|infrastructure|server|system|connectivity/.test(name);
+    case 'ServiceDeskAgent':
+      return /software|account|access|general|help|support|service/.test(name);
+    case 'SecurityAdmin':
+      return /security|account|access/.test(name);
+    default:
+      return false;
+  }
+}
+
 // Roles allowed to escalate tickets
 const ESCALATE_ROLES = [
   'Admin',
@@ -267,6 +300,15 @@ export default function TicketDetailPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const ticketId = pageParams.id as string;
+
+  // Shares cache with AIDetailsSection — no extra network request if that section already loaded it
+  const { data: aiDetailsResponse } = useQuery({
+    queryKey: ['ticket-ai-details', ticketId],
+    queryFn: () => getTicketAIDetails(ticketId),
+    enabled: Boolean(ticketId),
+    staleTime: 5 * 60 * 1000,
+  });
+  const fetchedAIDetails = aiDetailsResponse?.data;
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -340,6 +382,16 @@ export default function TicketDetailPage() {
   const needsTriage =
     ticket?.triageStatus === 'Pending' &&
     (ticket?.aiSuggestedCategoryId || ticket?.aiSuggestedAssigneeId || ticket?.aiSuggestedPriority);
+
+  // True when the user has deviated from the pre-filled AI suggestions
+  const aiPriority = ticket?.aiSuggestedPriority || ticket?.priority || 'Medium';
+  const aiCategory = ticket?.aiSuggestedCategoryId || ticket?.categoryId || '';
+  const aiAssignee = ticket?.aiSuggestedAssigneeId || ticket?.assignedToId || '';
+  const hasTriageChanges =
+    Boolean(needsTriage) &&
+    (selectedPriority !== aiPriority ||
+      selectedCategoryId !== aiCategory ||
+      selectedUserId !== aiAssignee);
 
   // Check if current user is the assignee
   const isAssignee = user && ticket?.assignedToId === user.id;
@@ -1051,6 +1103,8 @@ export default function TicketDetailPage() {
                     </Select>
                   </div>
 
+                  <Separator />
+
                   {/* Category Selection */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
@@ -1072,10 +1126,15 @@ export default function TicketDetailPage() {
                       </div>
                     ) : (
                       <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                        <SelectTrigger className="w-full">
+                          <span className="truncate text-sm">
+                            {selectedCategoryId
+                              ? (categories.find((c) => c.id === selectedCategoryId)?.name ?? 'Select a category')
+                              : <span className="text-muted-foreground">Select a category</span>
+                            }
+                          </span>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent style={{ maxHeight: '320px' }}>
                           {categories.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               <div className="flex flex-col gap-0.5 py-0.5">
@@ -1092,6 +1151,8 @@ export default function TicketDetailPage() {
                       </Select>
                     )}
                   </div>
+
+                  <Separator />
 
                   {/* Assignee Selection */}
                   <div className="space-y-2">
@@ -1112,20 +1173,59 @@ export default function TicketDetailPage() {
                       </div>
                     ) : (
                       <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a user" />
+                        <SelectTrigger className="w-full">
+                          <span className="truncate text-sm">
+                            {selectedUserId
+                              ? getUserName(selectedUserId)
+                              : <span className="text-muted-foreground">Select a user</span>
+                            }
+                          </span>
                         </SelectTrigger>
-                        <SelectContent>
-                          {users.map((u) => (
-                            <SelectItem key={u.id} value={u.id}>
-                              <div className="flex flex-col gap-0.5 py-0.5">
-                                <span className="font-medium">{getUserDisplayName(u)}</span>
-                                <span className="text-muted-foreground text-xs">
-                                  {u.role} · {u.email}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
+                        <SelectContent style={{ maxHeight: '420px' }}>
+                          {(() => {
+                            const selectedCategory = categories.find(
+                              (c) => c.id === selectedCategoryId,
+                            );
+                            const filtered = users.filter((u) => {
+                              if (!ASSIGNABLE_ROLES.includes(u.role)) { return false; }
+                              if (!selectedCategory) { return true; }
+
+                              return roleMatchesCategory(u.role, selectedCategory.name);
+                            });
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="py-4 text-center text-sm text-muted-foreground">
+                                  No staff match this category
+                                </div>
+                              );
+                            }
+
+                            return filtered.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                <div className="flex items-center gap-3 py-1">
+                                  <Avatar className="h-8 w-8 shrink-0">
+                                    <AvatarFallback className="text-xs bg-muted">
+                                      {getInitials(getUserDisplayName(u))}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex flex-col gap-0.5 min-w-0">
+                                    <span className="font-medium leading-tight">
+                                      {getUserDisplayName(u)}
+                                    </span>
+                                    {(u.jobTitle || u.department) && (
+                                      <span className="text-xs text-foreground/75 leading-tight">
+                                        {[u.jobTitle, u.department].filter(Boolean).join(' · ')}
+                                      </span>
+                                    )}
+                                    <span className="text-muted-foreground text-xs leading-tight">
+                                      {u.role} · {u.email}
+                                    </span>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                     )}
@@ -1164,33 +1264,35 @@ export default function TicketDetailPage() {
                     {/* Triage buttons */}
                     {needsTriage && canTriage ? (
                       <>
-                        {/* 1-Click Confirm AI Suggestions */}
-                        <Button
-                          onClick={handleConfirmTriage}
-                          disabled={isTriaging}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          {isTriaging ? (
-                            <Spinner size="sm" className="mr-2" />
-                          ) : (
-                            <Check className="h-4 w-4 mr-2" />
-                          )}
-                          Confirm AI
-                        </Button>
-
-                        {/* Apply Modified Values */}
-                        <Button
-                          onClick={handleModifyTriage}
-                          disabled={!selectedUserId || isTriaging}
-                          variant="outline"
-                        >
-                          {isTriaging ? (
-                            <Spinner size="sm" className="mr-2" />
-                          ) : (
-                            <Edit2 className="h-4 w-4 mr-2" />
-                          )}
-                          Save Changes
-                        </Button>
+                        {hasTriageChanges ? (
+                          /* User changed something — save the modified values */
+                          <Button
+                            onClick={handleModifyTriage}
+                            disabled={!selectedUserId || isTriaging}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            {isTriaging ? (
+                              <Spinner size="sm" className="mr-2" />
+                            ) : (
+                              <Edit2 className="h-4 w-4 mr-2" />
+                            )}
+                            Save Changes
+                          </Button>
+                        ) : (
+                          /* No changes — confirm AI suggestions as-is */
+                          <Button
+                            onClick={handleConfirmTriage}
+                            disabled={isTriaging}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            {isTriaging ? (
+                              <Spinner size="sm" className="mr-2" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-2" />
+                            )}
+                            Confirm AI
+                          </Button>
+                        )}
                       </>
                     ) : (
                       /* Regular assign button */
@@ -1909,14 +2011,15 @@ export default function TicketDetailPage() {
           }}
           ticketId={ticketId}
           aiDetails={
-            {
+            fetchedAIDetails ?? {
               ticketId,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              method: 'Hybrid' as any, // Will be populated from actual AI details
-              finalCategory: ticket.categoryId,
-              finalPriority: ticket.priority,
-              finalAssignee: ticket.assignedToId,
-            } as TicketAIDetails
+              method: 'Hybrid' as TicketAIDetails['method'],
+              finalCategory: ticket.aiSuggestedCategoryId ?? ticket.categoryId,
+              finalPriority: ticket.aiSuggestedPriority ?? ticket.priority,
+              finalAssignee: ticket.aiSuggestedAssigneeId ?? ticket.assignedToId,
+              finalConfidence: ticket.aiConfidenceScore ?? undefined,
+              needsReview: ticket.triageStatus === 'Pending',
+            }
           }
           availableCategories={categories.map((c) => ({
             id: c.id,
@@ -1926,6 +2029,9 @@ export default function TicketDetailPage() {
           availableAssignees={users.map((u) => ({
             id: u.id,
             name: u.fullName || `${u.firstName} ${u.lastName}`,
+            role: u.role,
+            department: u.department,
+            jobTitle: u.jobTitle,
           }))}
         />
       )}
