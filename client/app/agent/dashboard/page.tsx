@@ -317,7 +317,7 @@ export default function AgentDashboard() {
                 <AlertCircle className="h-4 w-4 text-red-500" />
                 SLA Warnings
                 {slaWarnings.length > 0 && (
-                  <span className="ml-auto text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">
                     {slaWarnings.length}
                   </span>
                 )}
@@ -332,10 +332,10 @@ export default function AgentDashboard() {
                     <button
                       key={t.id}
                       onClick={() => navigateTo(`/tickets/${t.id}`, { from: '/agent/dashboard' })}
-                      className="w-full text-left p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      className="w-full text-left p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                     >
-                      <p className="text-xs font-medium text-gray-800 truncate">{t.subject}</p>
-                      <p className="text-xs text-red-500 mt-0.5">
+                      <p className="text-xs font-medium text-foreground truncate">{t.subject}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">
                         {t.priority} · opened {format(new Date(t.createdAt), 'MMM d, h:mm a')}
                       </p>
                     </button>
@@ -352,7 +352,7 @@ export default function AgentDashboard() {
                 <Bell className="h-4 w-4 text-blue-500" />
                 User Replies
                 {userReplies.length > 0 && (
-                  <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
                     {userReplies.length}
                   </span>
                 )}
@@ -367,10 +367,10 @@ export default function AgentDashboard() {
                     <button
                       key={t.id}
                       onClick={() => navigateTo(`/tickets/${t.id}`, { from: '/agent/dashboard' })}
-                      className="w-full text-left p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                      className="w-full text-left p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                     >
-                      <p className="text-xs font-medium text-gray-800 truncate">{t.subject}</p>
-                      <p className="text-xs text-blue-500 mt-0.5">
+                      <p className="text-xs font-medium text-foreground truncate">{t.subject}</p>
+                      <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
                         User replied · {format(new Date(t.updatedAt), 'MMM d, h:mm a')}
                       </p>
                     </button>
