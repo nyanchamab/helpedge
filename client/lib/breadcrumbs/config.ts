@@ -163,13 +163,13 @@ export const breadcrumbConfig: BreadcrumbConfigMap = {
     label: 'Permissions',
   },
 
-  // AI & ML Admin
+  // Classification Engine
   '/admin': {
-    label: 'AI & ML Admin',
+    label: 'Classification Engine',
     icon: Brain,
   },
   '/admin/ai-analytics': {
-    label: 'AI Analytics',
+    label: 'Classification Analytics',
   },
   '/admin/ml-models': {
     label: 'ML Models',
