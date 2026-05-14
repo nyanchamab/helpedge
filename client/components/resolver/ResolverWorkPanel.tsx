@@ -112,7 +112,7 @@ export function ResolverWorkPanel({
     <div className="space-y-4">
       {/* Current status */}
       <div>
-        <p className="text-xs text-gray-500 mb-1.5">Current Status</p>
+        <p className="text-xs text-muted-foreground mb-1.5">Current Status</p>
         <Badge
           variant="outline"
           className={cn('text-sm', getEffectiveStatusStyle(ticket.status, ticket.assignedToId))}
@@ -122,7 +122,7 @@ export function ResolverWorkPanel({
       </div>
 
       {!canWork && (
-        <p className="text-xs text-gray-400 bg-gray-50 rounded-lg p-2.5 border">
+        <p className="text-xs text-muted-foreground bg-muted rounded-lg p-2.5 border">
           You are not assigned to this ticket. Ticket actions are restricted.
         </p>
       )}
@@ -153,8 +153,8 @@ export function ResolverWorkPanel({
           </Button>
 
           {showInfoForm && (
-            <div className="space-y-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-              <p className="text-xs text-blue-700 flex items-center gap-1.5">
+            <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/50">
+              <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
                 <Info className="h-3 w-3" />
                 Ticket will be paused and marked as awaiting info. Optionally add a message for the
                 user.
@@ -183,7 +183,7 @@ export function ResolverWorkPanel({
       {(ticket.status === 'AwaitingInfo' || ticket.status === 'OnHold') && canWork && (
         <Button
           variant="outline"
-          className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+          className="w-full border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30"
           onClick={handleResumeWork}
           disabled={isProcessing}
         >
@@ -217,7 +217,7 @@ export function ResolverWorkPanel({
         )}
 
       {(ticket.status === 'Resolved' || ticket.status === 'Closed') && (
-        <p className="text-sm text-center text-gray-400 py-2">This ticket has been resolved.</p>
+        <p className="text-sm text-center text-muted-foreground py-2">This ticket has been resolved.</p>
       )}
     </div>
   );
