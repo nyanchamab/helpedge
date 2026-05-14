@@ -5,7 +5,14 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllUsers, getRoleDisplayString, getRoleBadgeColor, User } from '@/lib/api/users';
+import {
+  getAllUsers,
+  changeUserRole,
+  getRoleDisplayString,
+  getRoleBadgeColor,
+  User,
+  UserRoleString,
+} from '@/lib/api/users';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +32,18 @@ import {
   Briefcase,
   ShieldCheck,
   RefreshCw,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -62,6 +80,44 @@ export default function TeamSettingsPage() {
   const [isLoading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [endUserSearch, setEndUserSearch] = useState('');
+  const [editingRoleFor, setEditingRoleFor] = useState<string | null>(null);
+  const [pendingRole, setPendingRole] = useState<UserRoleString | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
+
+  const isAdmin = currentUser?.role === 'Admin';
+
+  const ALL_ROLES: UserRoleString[] = [
+    'ITManager', 'TeamLead', 'SystemAdmin', 'ServiceDeskAgent',
+    'Technician', 'SecurityAdmin', 'EndUser',
+  ];
+
+  const startEditRole = (u: User) => {
+    setEditingRoleFor(u.id);
+    setPendingRole(u.role);
+  };
+
+  const cancelEditRole = () => {
+    setEditingRoleFor(null);
+    setPendingRole(null);
+  };
+
+  const confirmRoleChange = async (userId: string) => {
+    if (!pendingRole) return;
+    setSavingRole(true);
+    const res = await changeUserRole(userId, pendingRole);
+    setSavingRole(false);
+    if (res.success) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: pendingRole } : u)),
+      );
+      toast.success('Role updated successfully');
+    } else {
+      toast.error(res.error || 'Failed to update role');
+    }
+    setEditingRoleFor(null);
+    setPendingRole(null);
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -131,6 +187,23 @@ export default function TeamSettingsPage() {
   const uniqueRoles = Array.from(
     new Set(users.filter((u) => u.role !== 'EndUser').map((u) => u.role)),
   ).sort();
+
+  const filteredEndUsers = useMemo(() => {
+    return users
+      .filter((u) => u.role === 'EndUser')
+      .filter((u) => {
+        if (!endUserSearch.trim()) return true;
+        const q = endUserSearch.toLowerCase();
+        return (
+          `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.department ?? '').toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) =>
+        `${a.firstName}${a.lastName}`.localeCompare(`${b.firstName}${b.lastName}`),
+      );
+  }, [users, endUserSearch]);
 
   return (
     <PageContainer>
@@ -353,16 +426,71 @@ export default function TeamSettingsPage() {
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                     </div>
 
-                    {/* Role badge */}
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'text-xs shrink-0 border hidden sm:inline-flex',
-                        getRoleBadgeColor(u.role),
-                      )}
-                    >
-                      {getRoleDisplayString(u.role)}
-                    </Badge>
+                    {/* Role badge / inline editor */}
+                    {isAdmin && !isMe && u.role !== 'Admin' && editingRoleFor === u.id ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Select
+                          value={pendingRole ?? u.role}
+                          onValueChange={(v) => setPendingRole(v as UserRoleString)}
+                          disabled={savingRole}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-[155px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_ROLES.map((r) => (
+                              <SelectItem key={r} value={r} className="text-xs">
+                                {getRoleDisplayString(r)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => confirmRoleChange(u.id)}
+                          disabled={savingRole || pendingRole === u.role}
+                          title="Save"
+                        >
+                          {savingRole ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={cancelEditRole}
+                          disabled={savingRole}
+                          title="Cancel"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="hidden sm:flex items-center gap-1 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={cn('text-xs border', getRoleBadgeColor(u.role))}
+                        >
+                          {getRoleDisplayString(u.role)}
+                        </Badge>
+                        {isAdmin && !isMe && u.role !== 'Admin' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            onClick={() => startEditRole(u)}
+                            title="Change role"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Dept / title */}
                     <div className="hidden md:flex flex-col items-end text-xs text-muted-foreground min-w-[120px]">
@@ -384,16 +512,18 @@ export default function TeamSettingsPage() {
                       {formatLastLogin(u.lastLoginAt)}
                     </div>
 
-                    {/* Action */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      onClick={() => navigateTo('/team/members')}
-                      title="View in team directory"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </Button>
+                    {/* Navigate action */}
+                    {editingRoleFor !== u.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={() => navigateTo('/team/members')}
+                        title="View in team directory"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -401,6 +531,175 @@ export default function TeamSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* End Users — Admin only */}
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <CardTitle className="text-base">End Users</CardTitle>
+                <CardDescription>
+                  {isLoading
+                    ? 'Loading…'
+                    : `${filteredEndUsers.length} end user${filteredEndUsers.length !== 1 ? 's' : ''}${endUserSearch ? '' : ` (${stats.endUsers} total)`}`}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="relative pt-2">
+              <Search className="absolute left-2.5 top-1/2 translate-y-[-45%] h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search end users…"
+                value={endUserSearch}
+                onChange={(e) => setEndUserSearch(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
+          </CardHeader>
+
+          <Separator />
+
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Spinner className="text-muted-foreground" />
+              </div>
+            ) : filteredEndUsers.length === 0 ? (
+              <div className="flex flex-col items-center py-12 gap-2 text-muted-foreground">
+                <Users className="h-8 w-8 opacity-30" />
+                <p className="text-sm">
+                  {endUserSearch ? 'No end users match your search' : 'No end users yet'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredEndUsers.map((u) => {
+                  const isEditingThis = editingRoleFor === u.id;
+
+                  return (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-3 px-6 py-3.5 hover:bg-muted/40 transition-colors group"
+                    >
+                      <Avatar className="h-9 w-9 shrink-0 border">
+                        <AvatarImage src={u.avatarUrl ?? ''} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                          {getInitials(u)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-sm">
+                            {u.firstName} {u.lastName}
+                          </span>
+                          {!u.isActive && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground"
+                            >
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                      </div>
+
+                      {/* Role badge / inline editor */}
+                      {isEditingThis ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Select
+                            value={pendingRole ?? u.role}
+                            onValueChange={(v) => setPendingRole(v as UserRoleString)}
+                            disabled={savingRole}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-[155px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ALL_ROLES.map((r) => (
+                                <SelectItem key={r} value={r} className="text-xs">
+                                  {getRoleDisplayString(r)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => confirmRoleChange(u.id)}
+                            disabled={savingRole || pendingRole === u.role}
+                            title="Save"
+                          >
+                            {savingRole ? (
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={cancelEditRole}
+                            disabled={savingRole}
+                            title="Cancel"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="hidden sm:flex items-center gap-1 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={cn('text-xs border', getRoleBadgeColor(u.role))}
+                          >
+                            {getRoleDisplayString(u.role)}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            onClick={() => startEditRole(u)}
+                            title="Promote to staff role"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Dept */}
+                      <div className="hidden md:flex flex-col items-end text-xs text-muted-foreground min-w-[120px]">
+                        {u.department && (
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" /> {u.department}
+                          </span>
+                        )}
+                        {u.jobTitle && (
+                          <span className="flex items-center gap-1">
+                            <Briefcase className="h-3 w-3" /> {u.jobTitle}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Last login */}
+                      <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground min-w-[110px] justify-end">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        {formatLastLogin(u.lastLoginAt)}
+                      </div>
+
+                      {!isEditingThis && (
+                        <div className="w-7 shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick links */}
       <Card>
