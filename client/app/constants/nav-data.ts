@@ -208,12 +208,12 @@ export const navData = {
       ],
     },
     {
-      title: 'AI',
+      title: 'Classification Engine',
       url: '/admin',
       icon: Brain,
       roles: ['Admin', 'ITManager'],
       items: [
-        { title: 'AI Analytics', url: '/admin/ai-analytics', roles: ['Admin', 'ITManager'] },
+        { title: 'Classification Analytics', url: '/admin/ai-analytics', roles: ['Admin', 'ITManager'] },
         { title: 'TF-IDF', url: '/admin/tfidf', roles: ['Admin'] },
         { title: 'Case-Based Reasoning', url: '/admin/case-based-reasoning', roles: ['Admin'] },
         { title: 'Rule Management', url: '/admin/rule-management', roles: ['Admin', 'ITManager'] },
