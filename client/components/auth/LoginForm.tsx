@@ -201,12 +201,6 @@ export default function LoginForm() {
               </form>
 
               <p className="text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{' '}
-                <a href="/auth/register" className="text-blue-600 hover:underline">
-                  Sign up
-                </a>
-              </p>
-              <p className="text-center text-sm text-muted-foreground">
                 Need help?{' '}
                 <a href="/auth/contact-support" className="text-blue-600 hover:underline">
                   Contact support

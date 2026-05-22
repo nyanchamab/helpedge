@@ -93,24 +93,20 @@ export interface LoginResponse {
   };
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  role: RoleString;
-  department?: string;
-  phone?: string;
+export interface RegisterOrgRequest {
+  organizationName: string;
+  supportEmail: string;
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminJobTitle?: string;
+  adminPhoneNumber?: string;
 }
 
-export interface RegisterResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: RoleNumber;
-    department?: string;
-  };
+export interface RegisterOrgResponse {
+  message: string;
+  organizationId?: string;
 }
 
 export interface ValidateTokenRequest {
@@ -179,32 +175,18 @@ export async function login(credentials: LoginRequest): Promise<ApiResponse<Logi
 }
 
 /**
- * Register new user
- * Note: Backend returns UserDto only, not a token. User must login separately.
+ * Register a new organization and its default admin account.
+ * Backend sends an email verification link — no token is returned on success.
  */
-export async function register(userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-  // Convert role string to number for API
-  const apiData = {
-    email: userData.email,
-    password: userData.password,
-    name: userData.name,
-    role: ROLE_MAP[userData.role],
-    department: userData.department || undefined,
-  };
-
-  const response = await apiRequest<RegisterResponse>('/api/Auth/register', {
+export async function registerOrganization(
+  data: RegisterOrgRequest,
+): Promise<ApiResponse<RegisterOrgResponse>> {
+  return apiRequest<RegisterOrgResponse>('/api/Organizations/register', {
     method: 'POST',
-    body: apiData,
+    body: data,
     includeAuth: false,
-    credentials: 'omit', // Avoid CORS issues with credentials
+    credentials: 'omit',
   });
-
-  console.warn('Register API response:', response);
-
-  // Backend only returns UserDto, no token
-  // Token will be obtained through subsequent login
-
-  return response;
 }
 
 /**

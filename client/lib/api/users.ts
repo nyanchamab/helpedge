@@ -202,6 +202,21 @@ export async function deactivateUser(userId: string): Promise<ApiResponse<void>>
 }
 
 /**
+ * Change a user's role (Admin only)
+ * Guard rails enforced server-side: cannot change own role or another Admin's role.
+ */
+export async function changeUserRole(
+  userId: string,
+  newRole: UserRoleString,
+): Promise<ApiResponse<void>> {
+  return apiRequest<void>(`/api/Users/${userId}/role`, {
+    method: 'PATCH',
+    body: { newRole },
+    includeAuth: true,
+  });
+}
+
+/**
  * Delete a user
  * @param userId - The user ID
  * @returns Success response

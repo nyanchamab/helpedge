@@ -4,14 +4,12 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { useRouter } from 'next/navigation';
 import {
   login as apiLogin,
-  register as apiRegister,
   logout as apiLogout,
   getCurrentUser,
   validateToken,
   getDashboardRouteForRole,
   refreshToken as apiRefreshToken,
   type LoginRequest,
-  type RegisterRequest,
   type User,
 } from '@/lib/api/auth';
 import { getAuthToken } from '@/lib/api/client';
@@ -23,9 +21,6 @@ interface AuthContextType {
   login: (
     credentials: LoginRequest,
     redirectTo?: string,
-  ) => Promise<{ success: boolean; error?: string; redirectUrl?: string }>;
-  register: (
-    userData: RegisterRequest,
   ) => Promise<{ success: boolean; error?: string; redirectUrl?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -207,38 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
-   * Register new user
-   * Note: Backend registration does not return a token, so we auto-login after successful registration
-   */
-  async function register(
-    userData: RegisterRequest,
-  ): Promise<{ success: boolean; error?: string; redirectUrl?: string }> {
-    try {
-      const response = await apiRegister(userData);
-
-      if (response.success) {
-        // Registration successful, now automatically login the user
-        console.warn('Registration successful, auto-logging in...');
-        const loginResult = await login({ email: userData.email, password: userData.password });
-
-        return loginResult;
-      } else {
-        return {
-          success: false,
-          error: response.error || 'Registration failed. Please try again.',
-        };
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-
-      return {
-        success: false,
-        error: 'An unexpected error occurred. Please try again.',
-      };
-    }
-  }
-
-  /**
    * Get the dashboard route for the current user's role
    */
   function getDashboardRoute(): string {
@@ -306,7 +269,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     login,
-    register,
     logout,
     refreshUser,
     refreshSession,
