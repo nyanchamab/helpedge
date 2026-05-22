@@ -1,11 +1,5 @@
-// app/auth/register/page.tsx
-import RegisterForm from '@/components/auth/RegisterForm';
-import PublicRoute from '@/components/auth/PublicRoute';
+import { redirect } from 'next/navigation';
 
 export default function RegisterPage() {
-  return (
-    <PublicRoute>
-      <RegisterForm />
-    </PublicRoute>
-  );
+  redirect('/GetStarted');
 }

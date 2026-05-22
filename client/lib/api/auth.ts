@@ -13,7 +13,7 @@ export const USER_ROLES = [
   'EndUser',
 ] as const;
 
-export type UserRole = typeof USER_ROLES[number];
+export type UserRole = (typeof USER_ROLES)[number];
 
 // Role descriptions for display purposes
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -43,20 +43,20 @@ export const ROLE_DASHBOARD_ROUTES: Record<UserRole, string> = {
 
 // Backend string role to normalized UserRole mapping
 export const BACKEND_ROLE_MAP: Record<string, UserRole> = {
-  'Admin': 'Admin',
-  'ITManager': 'ITManager',
-  'TeamLead': 'TeamLead',
-  'SystemAdmin': 'SystemAdmin',
-  'ServiceDeskAgent': 'ServiceDeskAgent',
-  'Technician': 'Technician',
-  'SecurityAdmin': 'SecurityAdmin',
-  'EndUser': 'EndUser',
+  Admin: 'Admin',
+  ITManager: 'ITManager',
+  TeamLead: 'TeamLead',
+  SystemAdmin: 'SystemAdmin',
+  ServiceDeskAgent: 'ServiceDeskAgent',
+  Technician: 'Technician',
+  SecurityAdmin: 'SecurityAdmin',
+  EndUser: 'EndUser',
   // Legacy mappings for backwards compatibility
-  'SuperAdmin': 'Admin',
-  'admin': 'Admin',
-  'Agent': 'ServiceDeskAgent',
-  'agent': 'ServiceDeskAgent',
-  'end_user': 'EndUser',
+  SuperAdmin: 'Admin',
+  admin: 'Admin',
+  Agent: 'ServiceDeskAgent',
+  agent: 'ServiceDeskAgent',
+  end_user: 'EndUser',
 };
 
 // Legacy role type for backwards compatibility
@@ -75,7 +75,7 @@ export const ROLE_REVERSE_MAP = {
   2: 'end_user',
 } as const;
 
-export type RoleNumber = typeof ROLE_MAP[RoleString];
+export type RoleNumber = (typeof ROLE_MAP)[RoleString];
 
 export interface LoginRequest {
   email: string;
@@ -93,24 +93,20 @@ export interface LoginResponse {
   };
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  role: RoleString;
-  department?: string;
-  phone?: string;
+export interface RegisterOrgRequest {
+  organizationName: string;
+  supportEmail: string;
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminJobTitle?: string;
+  adminPhoneNumber?: string;
 }
 
-export interface RegisterResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: RoleNumber;
-    department?: string;
-  };
+export interface RegisterOrgResponse {
+  message: string;
+  organizationId?: string;
 }
 
 export interface ValidateTokenRequest {
@@ -142,10 +138,11 @@ export interface User {
  * Set the authentication token in a cookie
  */
 export function setAuthToken(token: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {return;}
   // Set cookie with secure flags (httpOnly can only be set by server)
   // Cookie expires in 7 days (matching typical JWT expiry)
   const expires = new Date();
+
   expires.setDate(expires.getDate() + 7);
   document.cookie = `authToken=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
 }
@@ -155,20 +152,21 @@ export function setAuthToken(token: string): void {
  * Uses credentials: 'omit' to avoid CORS issues, then manually sets the cookie
  */
 export async function login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-  const response = await apiRequest<any>('/api/Auth/login', {
+  const response = await apiRequest<LoginResponse>('/api/Auth/login', {
     method: 'POST',
     body: credentials,
     includeAuth: false,
     credentials: 'omit', // Avoid CORS issues with credentials
   });
 
-  console.log('Login API response:', response);
+  console.warn('Login API response:', response);
 
   // If login successful, manually set the cookie from the token in the response
   if (response.success && response.data) {
-    const token = response.data.token || response.data.Token;
+    const token = response.data.token; //|| response.data.Token;
+
     if (token) {
-      console.log('Setting auth token cookie manually');
+      console.warn('Setting auth token cookie manually');
       setAuthToken(token);
     }
   }
@@ -177,32 +175,18 @@ export async function login(credentials: LoginRequest): Promise<ApiResponse<Logi
 }
 
 /**
- * Register new user
- * Note: Backend returns UserDto only, not a token. User must login separately.
+ * Register a new organization and its default admin account.
+ * Backend sends an email verification link — no token is returned on success.
  */
-export async function register(userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-  // Convert role string to number for API
-  const apiData = {
-    email: userData.email,
-    password: userData.password,
-    name: userData.name,
-    role: ROLE_MAP[userData.role],
-    department: userData.department || undefined,
-  };
-
-  const response = await apiRequest<any>('/api/Auth/register', {
+export async function registerOrganization(
+  data: RegisterOrgRequest,
+): Promise<ApiResponse<RegisterOrgResponse>> {
+  return apiRequest<RegisterOrgResponse>('/api/Organizations/register', {
     method: 'POST',
-    body: apiData,
+    body: data,
     includeAuth: false,
-    credentials: 'omit', // Avoid CORS issues with credentials
+    credentials: 'omit',
   });
-
-  console.log('Register API response:', response);
-
-  // Backend only returns UserDto, no token
-  // Token will be obtained through subsequent login
-
-  return response;
 }
 
 /**
@@ -226,7 +210,8 @@ export async function refreshToken(): Promise<ApiResponse<LoginResponse>> {
   const currentToken = getAuthToken();
 
   if (!currentToken) {
-    console.log('Refresh token: No current token found');
+    console.warn('Refresh token: No current token found');
+
     return {
       success: false,
       status: 401,
@@ -234,21 +219,22 @@ export async function refreshToken(): Promise<ApiResponse<LoginResponse>> {
     };
   }
 
-  const response = await apiRequest<any>('/api/Auth/refresh', {
+  const response = await apiRequest<LoginResponse>('/api/Auth/refresh', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${currentToken}`,
+      Authorization: `Bearer ${currentToken}`,
     },
     credentials: 'omit',
   });
 
-  console.log('Refresh token API response:', response);
+  console.warn('Refresh token API response:', response);
 
   // If refresh successful, update the cookie with the new token
   if (response.success && response.data) {
-    const token = response.data.token || response.data.Token;
+    const token = response.data.token; // || response.data.Token;
+
     if (token) {
-      console.log('Updating auth token cookie with refreshed token');
+      console.warn('Updating auth token cookie with refreshed token');
       setAuthToken(token);
     }
   }
@@ -266,7 +252,7 @@ export async function logout(): Promise<void> {
       method: 'POST',
       credentials: 'omit',
     });
-    console.log('Backend logout successful');
+    console.warn('Backend logout successful');
   } catch (error) {
     console.error('Backend logout failed:', error);
   }
@@ -288,7 +274,7 @@ export async function logout(): Promise<void> {
     sessionStorage.clear();
   }
 
-  console.log('All local auth data cleared');
+  console.warn('All local auth data cleared');
 }
 
 /**
@@ -297,16 +283,20 @@ export async function logout(): Promise<void> {
  */
 export function getTokenExpirationTime(): number | null {
   const token = getAuthToken();
-  if (!token) return null;
+
+  if (!token) {return null;}
 
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+
     if (payload.exp) {
       const expirationTime = payload.exp * 1000; // Convert to milliseconds
       const currentTime = Date.now();
       const remainingTime = Math.floor((expirationTime - currentTime) / 1000);
+
       return remainingTime > 0 ? remainingTime : 0;
     }
+
     return null;
   } catch {
     return null;
@@ -318,7 +308,9 @@ export function getTokenExpirationTime(): number | null {
  */
 export function isTokenExpiringSoon(withinMinutes: number = 5): boolean {
   const remainingTime = getTokenExpirationTime();
-  if (remainingTime === null) return false;
+
+  if (remainingTime === null) {return false;}
+
   return remainingTime <= withinMinutes * 60;
 }
 
@@ -327,6 +319,7 @@ export function isTokenExpiringSoon(withinMinutes: number = 5): boolean {
  */
 export function isTokenExpired(): boolean {
   const remainingTime = getTokenExpirationTime();
+
   return remainingTime === null || remainingTime <= 0;
 }
 
@@ -335,18 +328,21 @@ export function isTokenExpired(): boolean {
  * This decodes the JWT token to extract user information
  */
 export function getCurrentUser(): User | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {return null;}
 
   const token = getAuthToken();
+
   if (!token) {
-    console.log('getCurrentUser: No token in cookie');
+    console.warn('getCurrentUser: No token in cookie');
+
     return null;
   }
 
   try {
     // Decode JWT token (simple base64 decode of payload)
     const payload = JSON.parse(atob(token.split('.')[1]));
-    console.log('JWT Payload:', payload);
+
+    console.warn('JWT Payload:', payload);
 
     // Map role to UserRole format
     let userRole: UserRole = 'EndUser';
@@ -360,18 +356,21 @@ export function getCurrentUser(): User | null {
     const user: User = {
       id: payload.sub || payload.userId || payload.id || payload.nameid,
       email: payload.email || payload.Email,
-      name: payload.name || payload.fullName || payload.username || payload.Name || payload.unique_name,
+      name:
+        payload.name || payload.fullName || payload.username || payload.Name || payload.unique_name,
       role: userRole,
       department: payload.department || payload.Department,
       jobTitle: payload.jobTitle || payload.JobTitle,
       avatarUrl: payload.avatarUrl || payload.AvatarUrl,
     };
 
-    console.log('Extracted user:', user);
+    console.warn('Extracted user:', user);
+
     return user;
   } catch (error) {
     console.error('Error decoding token:', error);
     console.error('Token:', token.substring(0, 50) + '...');
+
     return null;
   }
 }

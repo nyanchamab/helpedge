@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Construction, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Construction, ArrowLeft } from 'lucide-react';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface PlaceholderPageProps {
   title: string;
@@ -19,35 +19,38 @@ export function PlaceholderPage({
   features = [],
   comingSoon = true,
 }: PlaceholderPageProps) {
+  const { navigateTo } = useNavigation();
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{title}</h1>
             {comingSoon && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+              <Badge
+                variant="outline"
+                className="bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
+              >
                 Coming Soon
               </Badge>
             )}
           </div>
-          <p className="text-gray-600 mt-2">{description}</p>
+          <p className="text-muted-foreground mt-2">{description}</p>
         </div>
-        <Link href="/dashboard">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
+        <Button variant="outline" onClick={() => navigateTo('/dashboard')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
 
       {/* Main content placeholder */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <Construction className="h-8 w-8 text-blue-600" />
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <Construction className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <CardTitle>Page Under Development</CardTitle>
@@ -61,14 +64,14 @@ export function PlaceholderPage({
         {features.length > 0 && (
           <CardContent>
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Planned Features:</h3>
+              <h3 className="text-lg font-semibold text-foreground">Planned Features:</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <div className="min-w-[1.5rem] h-6 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                      <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full" />
                     </div>
-                    <span className="text-gray-700">{feature}</span>
+                    <span className="text-muted-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -76,26 +79,6 @@ export function PlaceholderPage({
           </CardContent>
         )}
       </Card>
-
-      {/* Demo content cards to show scrolling */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg">Sample Card {i}</CardTitle>
-              <CardDescription>
-                This is a placeholder card to demonstrate the scrolling functionality
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Content for this section will be populated once the feature is implemented.
-                This card is here to show how the layout handles multiple items.
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

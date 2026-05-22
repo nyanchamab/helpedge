@@ -163,13 +163,13 @@ export const breadcrumbConfig: BreadcrumbConfigMap = {
     label: 'Permissions',
   },
 
-  // AI & ML Admin
+  // Classification Engine
   '/admin': {
-    label: 'AI & ML Admin',
+    label: 'Classification Engine',
     icon: Brain,
   },
   '/admin/ai-analytics': {
-    label: 'AI Analytics',
+    label: 'Classification Analytics',
   },
   '/admin/ml-models': {
     label: 'ML Models',
@@ -239,6 +239,7 @@ export function getBreadcrumbConfig(path: string): BreadcrumbConfig | undefined 
       ) {
         return '[id]';
       }
+
       return segment;
     })
     .join('/');
@@ -258,7 +259,7 @@ export function isDynamicSegment(segment: string): boolean {
  * Converts kebab-case and snake_case to Title Case
  */
 export function segmentToLabel(segment: string): string {
-  if (!segment) return '';
+  if (!segment) {return '';}
 
   // Handle dynamic segments
   if (isDynamicSegment(segment)) {

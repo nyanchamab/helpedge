@@ -95,19 +95,22 @@ export interface MethodPerformance {
 }
 
 export interface CategoryPerformance {
-  category: string;
+  categoryName: string;
   totalPredictions: number;
   correctPredictions: number;
+  incorrectPredictions?: number;
   accuracy: number;
   averageConfidence: number;
+  overrides?: number;
+  approvals?: number;
   confusionMatrix?: Record<string, number>;
 }
 
 export interface ConfusionMatrix {
   categories: string[];
-  matrix: number[][];
-  totalPredictions: number;
-  accuracy: number;
+  matrix: Record<string, Record<string, number>>;
+  totalClassifications: number;
+  accuracy?: number;
 }
 
 // ============================================
@@ -215,7 +218,7 @@ export interface MLModel {
   isActive: boolean;
   notes?: string;
   modelPath?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MLModelStats {
@@ -268,7 +271,7 @@ export interface TrainingData {
   isVerified: boolean;
   source: TrainingDataSource;
   createdAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export enum TrainingDataSource {

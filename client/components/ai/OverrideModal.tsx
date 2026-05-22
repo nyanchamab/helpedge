@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
 import { useState, useEffect, type FC } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -15,28 +15,29 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConfidenceBadge } from './ConfidenceBadge';
-import { Info, ArrowRight } from 'lucide-react';
+import { Info, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { overrideTicketClassification } from '@/lib/api/ai';
 import type { TicketAIDetails } from '@/lib/types/ai';
+import type { UserRoleString } from '@/lib/api/users';
 
 const overrideSchema = z.object({
   correctCategory: z.string().min(1, 'Please select a category'),
@@ -50,6 +51,14 @@ const overrideSchema = z.object({
 
 type OverrideFormData = z.infer<typeof overrideSchema>;
 
+export interface AssigneeOption {
+  id: string;
+  name: string;
+  role?: UserRoleString;
+  department?: string;
+  jobTitle?: string;
+}
+
 interface OverrideModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -58,15 +67,41 @@ interface OverrideModalProps {
   aiDetails: TicketAIDetails;
   availableCategories: { id: string; name: string }[];
   availablePriorities?: string[];
-  availableAssignees?: { id: string; name: string }[];
+  availableAssignees?: AssigneeOption[];
 }
 
 const DEFAULT_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
-/**
- * Modal for overriding AI classification with correct values
- * Provides side-by-side comparison and feedback submission
- */
+const ASSIGNABLE_ROLES: UserRoleString[] = [
+  'TeamLead',
+  'SystemAdmin',
+  'ServiceDeskAgent',
+  'Technician',
+  'SecurityAdmin',
+];
+
+function roleMatchesCategory(role: UserRoleString, categoryName: string): boolean {
+  const name = categoryName.toLowerCase();
+
+  switch (role) {
+    case 'TeamLead':
+    case 'Technician':
+      return true;
+    case 'SystemAdmin':
+      return /network|hardware|infrastructure|server|system|connectivity/.test(name);
+    case 'ServiceDeskAgent':
+      return /software|account|access|general|help|support|service/.test(name);
+    case 'SecurityAdmin':
+      return /security|account|access/.test(name);
+    default:
+      return false;
+  }
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+}
+
 export const OverrideModal: FC<OverrideModalProps> = ({
   isOpen,
   onClose,
@@ -89,22 +124,35 @@ export const OverrideModal: FC<OverrideModalProps> = ({
     },
   });
 
-  // Re-initialize form with resolved names whenever modal opens or lookup arrays load
+  const watchedCategory = useWatch({ control: form.control, name: 'correctCategory' });
+  const watchedAssignee = useWatch({ control: form.control, name: 'correctAssignee' });
+  const watchedPriority = useWatch({ control: form.control, name: 'correctPriority' });
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { return; }
     const category = availableCategories.find(
-      (c) => c.id === aiDetails.finalCategory || c.name === aiDetails.finalCategory
+      (c) => c.id === aiDetails.finalCategory || c.name === aiDetails.finalCategory,
     )?.name;
     const assignee = availableAssignees.find(
-      (a) => a.id === aiDetails.finalAssignee || a.name === aiDetails.finalAssignee
+      (a) => a.id === aiDetails.finalAssignee || a.name === aiDetails.finalAssignee,
     )?.name;
+
     form.reset({
       correctCategory: category || undefined,
       correctPriority: aiDetails.finalPriority || undefined,
       correctAssignee: assignee || undefined,
       reason: '',
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, availableCategories, availableAssignees]);
+
+  // Filter assignees: only assignable roles, filtered further by selected category
+  const filteredAssignees = availableAssignees.filter((a) => {
+    if (a.role && !ASSIGNABLE_ROLES.includes(a.role)) { return false; }
+    if (!watchedCategory || !a.role) { return true; }
+
+    return roleMatchesCategory(a.role, watchedCategory);
+  });
 
   const handleSubmit = async (data: OverrideFormData) => {
     setIsSubmitting(true);
@@ -128,7 +176,7 @@ export const OverrideModal: FC<OverrideModalProps> = ({
           description: response.error || 'Please try again.',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to override classification', {
         description: 'An unexpected error occurred.',
       });
@@ -142,16 +190,21 @@ export const OverrideModal: FC<OverrideModalProps> = ({
     onClose();
   };
 
-  // Resolve IDs to display names using the provided lookup arrays
   const resolveCategoryName = (idOrName: string | null | undefined) => {
-    if (!idOrName) return 'None';
+    if (!idOrName) { return null; }
+
     return availableCategories.find((c) => c.id === idOrName || c.name === idOrName)?.name ?? idOrName;
   };
 
   const resolveAssigneeName = (idOrName: string | null | undefined) => {
-    if (!idOrName) return 'None';
+    if (!idOrName) { return null; }
+
     return availableAssignees.find((a) => a.id === idOrName || a.name === idOrName)?.name ?? idOrName;
   };
+
+  const aiCategory = resolveCategoryName(aiDetails.finalCategory);
+  const aiAssignee = resolveAssigneeName(aiDetails.finalAssignee);
+  const aiPriority = aiDetails.finalPriority;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
@@ -159,7 +212,7 @@ export const OverrideModal: FC<OverrideModalProps> = ({
         <DialogHeader>
           <DialogTitle>Override AI Classification</DialogTitle>
           <DialogDescription>
-            Correct the AI's classification with the accurate values. Your feedback helps
+            Correct the AI&rsquo;s classification with the accurate values. Your feedback helps
             improve future predictions.
           </DialogDescription>
         </DialogHeader>
@@ -180,147 +233,167 @@ export const OverrideModal: FC<OverrideModalProps> = ({
         </Alert>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Category Override */}
-            <div className="space-y-4">
-              <h4 className="font-medium">Category</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg border p-3 space-y-2">
-                  <p className="text-xs text-muted-foreground">AI Suggested</p>
-                  <p className="text-sm font-medium">
-                    {resolveCategoryName(aiDetails.finalCategory)}
-                  </p>
-                </div>
-                <div className="flex items-center justify-center">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="correctCategory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Your Correction</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select correct category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availableCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.name}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+
+            {/* Category */}
+            <FormField
+              control={form.control}
+              name="correctCategory"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel className="flex items-center gap-2">
+                    Category
+                    {aiCategory && watchedCategory === aiCategory && (
+                      <span className="inline-flex items-center gap-1 text-xs font-normal text-purple-600">
+                        <Sparkles className="h-3 w-3" /> AI
+                      </span>
                     )}
-                  />
-                </div>
-              </div>
-            </div>
+                  </FormLabel>
+                  {aiCategory && (
+                    <p className="text-xs text-muted-foreground">
+                      AI suggested: <span className="font-medium text-foreground">{aiCategory}</span>
+                    </p>
+                  )}
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <span className="truncate text-sm">
+                          {field.value
+                            ? field.value
+                            : <span className="text-muted-foreground">Select correct category</span>
+                          }
+                        </span>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent style={{ maxHeight: '320px' }}>
+                      {availableCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          <span className="font-medium">{category.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Separator />
 
-            {/* Priority Override */}
-            <div className="space-y-4">
-              <h4 className="font-medium">Priority</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg border p-3 space-y-2">
-                  <p className="text-xs text-muted-foreground">AI Suggested</p>
-                  <p className="text-sm font-medium">
-                    {aiDetails.finalPriority || 'None'}
-                  </p>
-                </div>
-                <div className="flex items-center justify-center">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="correctPriority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Your Correction</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select correct priority" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availablePriorities.map((priority) => (
-                              <SelectItem key={priority} value={priority}>
-                                {priority}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+            {/* Priority */}
+            <FormField
+              control={form.control}
+              name="correctPriority"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel className="flex items-center gap-2">
+                    Priority
+                    {aiPriority && watchedPriority === aiPriority && (
+                      <span className="inline-flex items-center gap-1 text-xs font-normal text-purple-600">
+                        <Sparkles className="h-3 w-3" /> AI
+                      </span>
                     )}
-                  />
-                </div>
-              </div>
-            </div>
+                  </FormLabel>
+                  {aiPriority && (
+                    <p className="text-xs text-muted-foreground">
+                      AI suggested: <span className="font-medium text-foreground">{aiPriority}</span>
+                    </p>
+                  )}
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <span className="truncate text-sm">
+                          {field.value
+                            ? field.value
+                            : <span className="text-muted-foreground">Select correct priority</span>
+                          }
+                        </span>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availablePriorities.map((priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          {priority}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {availableAssignees.length > 0 && (
               <>
                 <Separator />
 
-                {/* Assignee Override */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Assignee</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-lg border p-3 space-y-2">
-                      <p className="text-xs text-muted-foreground">AI Suggested</p>
-                      <p className="text-sm font-medium">
-                        {resolveAssigneeName(aiDetails.finalAssignee)}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="col-span-2">
-                      <FormField
-                        control={form.control}
-                        name="correctAssignee"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your Correction</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select correct assignee" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {availableAssignees.map((assignee) => (
-                                  <SelectItem key={assignee.id} value={assignee.name}>
-                                    {assignee.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
+                {/* Assignee */}
+                <FormField
+                  control={form.control}
+                  name="correctAssignee"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="flex items-center gap-2">
+                        Assignee
+                        {aiAssignee && watchedAssignee === aiAssignee && (
+                          <span className="inline-flex items-center gap-1 text-xs font-normal text-purple-600">
+                            <Sparkles className="h-3 w-3" /> AI
+                          </span>
                         )}
-                      />
-                    </div>
-                  </div>
-                </div>
+                      </FormLabel>
+                      {aiAssignee && (
+                        <p className="text-xs text-muted-foreground">
+                          AI suggested: <span className="font-medium text-foreground">{aiAssignee}</span>
+                        </p>
+                      )}
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <span className="truncate text-sm">
+                              {field.value
+                                ? field.value
+                                : <span className="text-muted-foreground">Select correct assignee</span>
+                              }
+                            </span>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent style={{ maxHeight: '420px' }}>
+                          {filteredAssignees.length === 0 ? (
+                            <div className="py-4 text-center text-sm text-muted-foreground">
+                              No staff match this category
+                            </div>
+                          ) : (
+                            filteredAssignees.map((assignee) => (
+                              <SelectItem key={assignee.id} value={assignee.name}>
+                                <div className="flex items-center gap-3 py-1">
+                                  <Avatar className="h-8 w-8 shrink-0">
+                                    <AvatarFallback className="text-xs bg-muted">
+                                      {getInitials(assignee.name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex flex-col gap-0.5 min-w-0">
+                                    <span className="font-medium leading-tight">{assignee.name}</span>
+                                    {(assignee.jobTitle || assignee.department) && (
+                                      <span className="text-xs text-foreground/75 leading-tight">
+                                        {[assignee.jobTitle, assignee.department].filter(Boolean).join(' · ')}
+                                      </span>
+                                    )}
+                                    {assignee.role && (
+                                      <span className="text-muted-foreground text-xs leading-tight">
+                                        {assignee.role}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </>
             )}
 
@@ -332,7 +405,9 @@ export const OverrideModal: FC<OverrideModalProps> = ({
               name="reason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reason <span className="text-destructive">*</span></FormLabel>
+                  <FormLabel>
+                    Reason <span className="text-destructive">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Why is this correction necessary? (min. 10 characters)"
@@ -358,7 +433,11 @@ export const OverrideModal: FC<OverrideModalProps> = ({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 {isSubmitting ? 'Submitting...' : 'Submit Correction'}
               </Button>
             </DialogFooter>
