@@ -20,17 +20,23 @@ function getPasswordStrength(password: string): {
   label: string;
   colorClass: string;
 } {
-  if (!password) return { score: 0, label: '', colorClass: '' };
+  if (!password) {
+    return { score: 0, label: '', colorClass: '' };
+  }
+
   let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/\d/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 2) return { score, label: 'Weak', colorClass: 'bg-red-500' };
-  if (score <= 3) return { score, label: 'Fair', colorClass: 'bg-yellow-500' };
-  if (score <= 4) return { score, label: 'Good', colorClass: 'bg-blue-500' };
+
+  if (password.length >= 8) { score++; }
+  if (password.length >= 12) { score++; }
+  if (/[A-Z]/.test(password)) { score++; }
+  if (/[a-z]/.test(password)) { score++; }
+  if (/\d/.test(password)) { score++; }
+  if (/[^A-Za-z0-9]/.test(password)) { score++; }
+
+  if (score <= 2) { return { score, label: 'Weak', colorClass: 'bg-red-500' }; }
+  if (score <= 3) { return { score, label: 'Fair', colorClass: 'bg-yellow-500' }; }
+  if (score <= 4) { return { score, label: 'Good', colorClass: 'bg-blue-500' }; }
+
   return { score, label: 'Strong', colorClass: 'bg-green-500' };
 }
 
@@ -70,12 +76,16 @@ export default function OrgRegisterWizard() {
   const handleStep1Continue = () => {
     if (!adminEmail.trim()) {
       setEmailError('Email is required');
+
       return;
     }
+
     if (!isValidEmail(adminEmail)) {
       setEmailError('Enter a valid email address');
+
       return;
     }
+
     setEmailError('');
     setStep(2);
   };
@@ -83,14 +93,16 @@ export default function OrgRegisterWizard() {
   // ── Step 2 ──────────────────────────────────────────────────────────
   const validateOrgField = (name: 'orgName' | 'supportEmail', value: string) => {
     if (name === 'orgName') {
-      if (!value.trim()) return 'Organization name is required';
-      if (value.trim().length < 2) return 'Must be at least 2 characters';
-      if (value.trim().length > 100) return 'Cannot exceed 100 characters';
+      if (!value.trim()) { return 'Organization name is required'; }
+      if (value.trim().length < 2) { return 'Must be at least 2 characters'; }
+      if (value.trim().length > 100) { return 'Cannot exceed 100 characters'; }
     }
+
     if (name === 'supportEmail') {
-      if (!value.trim()) return 'Support email is required';
-      if (!isValidEmail(value)) return 'Invalid email format';
+      if (!value.trim()) { return 'Support email is required'; }
+      if (!isValidEmail(value)) { return 'Invalid email format'; }
     }
+
     return undefined;
   };
 
@@ -99,33 +111,37 @@ export default function OrgRegisterWizard() {
       orgName: validateOrgField('orgName', orgName),
       supportEmail: validateOrgField('supportEmail', supportEmail),
     };
+
     setOrgErrors(errors);
     setOrgTouched({ orgName: true, supportEmail: true });
-    if (!errors.orgName && !errors.supportEmail) setStep(3);
+
+    if (!errors.orgName && !errors.supportEmail) { setStep(3); }
   };
 
   // ── Step 3 ──────────────────────────────────────────────────────────
   const validateAdminField = (name: string, value: string): string | undefined => {
     switch (name) {
       case 'firstName':
-        if (!value.trim()) return 'First name is required';
-        if (value.trim().length < 2) return 'Must be at least 2 characters';
+        if (!value.trim()) { return 'First name is required'; }
+        if (value.trim().length < 2) { return 'Must be at least 2 characters'; }
         break;
       case 'lastName':
-        if (!value.trim()) return 'Last name is required';
-        if (value.trim().length < 2) return 'Must be at least 2 characters';
+        if (!value.trim()) { return 'Last name is required'; }
+        if (value.trim().length < 2) { return 'Must be at least 2 characters'; }
         break;
       case 'password':
-        if (!value) return 'Password is required';
-        if (value.length < 8) return 'Must be at least 8 characters';
-        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value))
+        if (!value) { return 'Password is required'; }
+        if (value.length < 8) { return 'Must be at least 8 characters'; }
+        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
           return 'Must include uppercase, lowercase, and a number';
+        }
         break;
       case 'confirmPassword':
-        if (!value) return 'Please confirm your password';
-        if (value !== password) return 'Passwords do not match';
+        if (!value) { return 'Please confirm your password'; }
+        if (value !== password) { return 'Passwords do not match'; }
         break;
     }
+
     return undefined;
   };
 
@@ -138,10 +154,13 @@ export default function OrgRegisterWizard() {
       jobTitle: setJobTitle,
       phoneNumber: setPhoneNumber,
     };
+
     setters[name]?.(value);
+
     if (adminTouched[name]) {
       setAdminErrors((prev) => ({ ...prev, [name]: validateAdminField(name, value) }));
     }
+
     if (name === 'password' && adminTouched.confirmPassword) {
       setAdminErrors((prev) => ({
         ...prev,
@@ -152,20 +171,23 @@ export default function OrgRegisterWizard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const required = ['firstName', 'lastName', 'password', 'confirmPassword'];
-    const values: Record<string, string> = {
-      firstName, lastName, password, confirmPassword,
-    };
+    const values: Record<string, string> = { firstName, lastName, password, confirmPassword };
     const errors: Record<string, string | undefined> = {};
+
     for (const key of required) {
       errors[key] = validateAdminField(key, values[key]);
     }
+
     setAdminErrors(errors);
     setAdminTouched({ firstName: true, lastName: true, password: true, confirmPassword: true });
-    if (Object.values(errors).some(Boolean)) return;
+
+    if (Object.values(errors).some(Boolean)) { return; }
 
     setIsLoading(true);
     setGeneralError('');
+
     try {
       const result = await registerOrganization({
         organizationName: orgName,
@@ -177,6 +199,7 @@ export default function OrgRegisterWizard() {
         adminJobTitle: jobTitle || undefined,
         adminPhoneNumber: phoneNumber || undefined,
       });
+
       if (result.success) {
         setStep(4);
       } else {
@@ -240,7 +263,7 @@ export default function OrgRegisterWizard() {
                     value={adminEmail}
                     onChange={(e) => {
                       setAdminEmail(e.target.value);
-                      if (emailError) setEmailError('');
+                      if (emailError) { setEmailError(''); }
                     }}
                     onKeyDown={(e) => e.key === 'Enter' && handleStep1Continue()}
                     className="text-center w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -320,8 +343,9 @@ export default function OrgRegisterWizard() {
                     value={orgName}
                     onChange={(e) => {
                       setOrgName(e.target.value);
-                      if (orgTouched.orgName)
+                      if (orgTouched.orgName) {
                         setOrgErrors((p) => ({ ...p, orgName: validateOrgField('orgName', e.target.value) }));
+                      }
                     }}
                     onBlur={() => {
                       setOrgTouched((p) => ({ ...p, orgName: true }));
@@ -344,8 +368,9 @@ export default function OrgRegisterWizard() {
                     value={supportEmail}
                     onChange={(e) => {
                       setSupportEmail(e.target.value);
-                      if (orgTouched.supportEmail)
+                      if (orgTouched.supportEmail) {
                         setOrgErrors((p) => ({ ...p, supportEmail: validateOrgField('supportEmail', e.target.value) }));
+                      }
                     }}
                     onBlur={() => {
                       setOrgTouched((p) => ({ ...p, supportEmail: true }));

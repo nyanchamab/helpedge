@@ -103,9 +103,11 @@ export default function TeamSettingsPage() {
   };
 
   const confirmRoleChange = async (userId: string) => {
-    if (!pendingRole) return;
+    if (!pendingRole) { return; }
+
     setSavingRole(true);
     const res = await changeUserRole(userId, pendingRole);
+
     setSavingRole(false);
     if (res.success) {
       setUsers((prev) =>
@@ -192,8 +194,10 @@ export default function TeamSettingsPage() {
     return users
       .filter((u) => u.role === 'EndUser')
       .filter((u) => {
-        if (!endUserSearch.trim()) return true;
+        if (!endUserSearch.trim()) { return true; }
+
         const q = endUserSearch.toLowerCase();
+
         return (
           `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
